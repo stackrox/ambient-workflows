@@ -1,10 +1,21 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with the ACS Triage Workflow.
+This file provides guidance to Claude Code (claude.ai/code) when working with ACS workflows.
 
 ## Repository Purpose
 
-This is a **single-purpose workflow** for automated triage of StackRox/ACS JIRA issues. It analyzes CI failures, security vulnerabilities, and flaky tests to generate actionable reports with intelligent team assignment.
+This repository contains **ACS/StackRox operational workflows** for the Ambient Code Platform (ACP). Each workflow lives in its own directory with its own `.ambient/ambient.json`.
+
+### Workflows
+
+| Workflow | Path | Purpose |
+|----------|------|---------|
+| **ACS Triage** | `.` (root) | Automated triage of JIRA issues with intelligent team assignment |
+| **ACS Patch Release** | `patch-release/` | Guided Z-stream (patch) release process, stateless and resumable |
+
+## ACS Triage Workflow (root)
+
+Automated triage of StackRox/ACS JIRA issues. Analyzes CI failures, security vulnerabilities, and flaky tests to generate actionable reports with intelligent team assignment.
 
 ## Key Features
 
@@ -167,7 +178,26 @@ For questions or issues:
 
 ---
 
-**Workflow Type:** Domain-Specific Triage
-**Target:** StackRox/ACS JIRA Issues
-**Mode:** READ-ONLY (Reports Only)
-**Version:** 1.0.0
+## ACS Patch Release Workflow (`patch-release/`)
+
+Stateless, resumable workflow for ACS Z-stream (patch) releases. Detects progress
+from external signals (git tags, milestones, Jira, Konflux) so any engineer can
+pick up a release at any point.
+
+### Commands
+
+- `/patch-release VERSION` — Perform a patch release (fresh start or resume)
+
+### Testing in ACP
+
+1. Push branch to your fork
+2. In ACP, select "Custom Workflow..."
+3. Enter path: `patch-release`
+
+See `patch-release/CLAUDE.md` for full documentation.
+
+---
+
+**Workflow Types:**
+- ACS Triage (root) — Domain-Specific Triage, READ-ONLY
+- ACS Patch Release (`patch-release/`) — Guided Release Process, Stateless + Resumable
