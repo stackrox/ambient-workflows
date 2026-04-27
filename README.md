@@ -12,7 +12,7 @@ This workflow provides systematic triage of untriaged StackRox issues using:
 - **READ-ONLY Mode**: Generates reports and recommendations without modifying JIRA
 - **Multiple Output Formats**: Markdown, interactive HTML, Slack summaries, and JSON
 
-### 8-Phase Workflow
+### Workflow Phases
 
 1. **Setup** - Clone StackRox repository for CODEOWNERS and reference data
 2. **Fetch Issues** - Retrieve untriaged issues from JIRA filters (103399, 95004)
@@ -21,7 +21,8 @@ This workflow provides systematic triage of untriaged StackRox issues using:
 5. **Assign Team** - Multi-strategy assignment with confidence scoring
 6. **Generate Reports** - Create markdown, HTML, and Slack outputs
 7. **Review** - Human review of recommendations
-8. **Execute** - Manual JIRA updates based on report (not automated)
+8. **Comment** (Optional) - Add triage comments to JIRA
+9. **Execute** - Manual JIRA updates based on report
 
 ## Getting Started
 
@@ -56,12 +57,27 @@ This workflow provides systematic triage of untriaged StackRox issues using:
 /generate-report
 ```
 
-### Automated Mode
+### Automated Mode (Read-Only)
 
 For scheduled execution (weekdays 3 PM UTC), run all commands in sequence:
 
 ```bash
 /setup && /fetch-issues && /classify && /analyze-ci && /analyze-vuln && /analyze-flaky && /assign-team && /generate-report
+```
+
+### Semi-Automated Mode (With Comments)
+
+⚠️ **Warning:** This mode WRITES to JIRA
+
+```bash
+# Generate reports first
+/setup && /fetch-issues && /classify && /analyze-ci && /analyze-vuln && /analyze-flaky && /assign-team && /generate-report
+
+# Review the report, then add comments (dry run first)
+/comment-issues
+
+# If satisfied, post comments
+/comment-issues --confirm
 ```
 
 ## Workflow Phases
@@ -179,6 +195,38 @@ Uses 5 strategies in priority order. See `reference/constants.md` for confidence
    - Links to full reports
 
 4. **summary.json** - Machine-readable data for automation
+
+### Phase 9 (Optional): Add Triage Comments (`/comment-issues`)
+
+⚠️ **Warning:** This phase WRITES to JIRA
+
+**Purpose:** Add structured triage comments to JIRA issues with team recommendations
+
+**Process:**
+- Read triage results from `artifacts/acs-triage/issues.json`
+- Generate formatted comment with team, confidence, reasoning, evidence
+- Post comment to JIRA using JIRA MCP
+- Log results (success/failure/skipped)
+
+**Safety Features:**
+- Dry run by default (preview without posting)
+- Minimum confidence filter (default: ≥70%)
+- Rate limiting (10 issues/minute)
+- Idempotency check (skip if comment already exists)
+
+**Usage:**
+```bash
+# Dry run (preview only)
+/comment-issues
+
+# Post comments (requires --confirm)
+/comment-issues --confirm
+
+# Higher confidence threshold
+/comment-issues --min-confidence=80 --confirm
+```
+
+**Output:** `artifacts/acs-triage/comment-results.json`
 
 ## Team Assignment Strategies
 

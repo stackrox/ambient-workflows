@@ -2,7 +2,11 @@
 
 ## Purpose
 
-Apply multi-strategy team assignment with confidence scoring. Uses 5 strategies in priority order (CODEOWNERS, error signatures, service ownership, similar issues, test category) to assign teams with 95%-70% confidence levels. Adjusts confidence for version mismatches.
+Apply multi-strategy team assignment with confidence scoring. Uses 5 strategies in priority order (CODEOWNERS, error signatures, service ownership, similar issues, test category) to assign teams. Adjusts confidence for version mismatches.
+
+**See:** `reference/teams.md` for team list and responsibilities
+**See:** `reference/constants.md` for confidence thresholds
+**See:** `reference/CODEOWNERS-patterns.md`, `reference/error-signatures.md`, `reference/team-mappings.md` for matching rules
 
 ## Prerequisites
 

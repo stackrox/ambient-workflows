@@ -15,7 +15,7 @@ This is a **single-purpose workflow** for automated triage of StackRox/ACS JIRA 
 
 ## Workflow Commands
 
-The workflow provides 7 slash commands:
+The workflow provides 8 slash commands:
 
 - `/setup` - Clone StackRox repository for CODEOWNERS and reference data
 - `/fetch-issues` - Retrieve untriaged JIRA issues from filters 103399 and 95004
@@ -25,6 +25,7 @@ The workflow provides 7 slash commands:
 - `/analyze-flaky` - Pattern matching for flaky tests
 - `/assign-team` - Multi-strategy team assignment with confidence scores
 - `/generate-report` - Create markdown, HTML, and Slack reports
+- `/comment-issues` - Add triage comments to JIRA (⚠️ WRITES to JIRA, optional)
 
 ## Directory Structure
 
