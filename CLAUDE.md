@@ -74,6 +74,28 @@ See `reference/constants.md` for all confidence thresholds and configuration val
 4. **Version Awareness**: Adjust confidence for version mismatches
 5. **High Confidence Threshold**: ≥80% for recommended assignments
 
+## Automated Execution
+
+The workflow is configured in `.ambient/ambient.json` for automated execution:
+
+```json
+{
+  "config": {
+    "jira": {
+      "project": "ROX",
+      "filters": [103399, 95004]
+    },
+    "execution": {
+      "mode": "parallel",
+      "parallelCommands": ["/analyze-ci", "/analyze-vuln", "/analyze-flaky"],
+      "sequentialCommands": ["/setup", "/fetch-issues", "/classify", "/assign-team", "/generate-report"]
+    }
+  }
+}
+```
+
+**Parallel Execution**: Analysis commands run simultaneously for speed (saves 60-80 seconds). Safe because each command only enriches issues matching its type.
+
 ## Version Mismatch Handling
 
 The `/setup` command clones latest `main` branch. Issues with older `affectedVersions` may have:

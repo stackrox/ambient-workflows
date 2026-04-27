@@ -59,10 +59,26 @@ This workflow provides systematic triage of untriaged StackRox issues using:
 
 ### Automated Mode (Read-Only)
 
-For scheduled execution (weekdays 3 PM UTC), run all commands in sequence:
+For scheduled execution (weekdays 3 PM UTC):
 
+**Sequential (simpler, safer):**
 ```bash
 /setup && /fetch-issues && /classify && /analyze-ci && /analyze-vuln && /analyze-flaky && /assign-team && /generate-report
+```
+
+**Parallel (faster, configured in ambient.json):**
+The workflow automatically runs analysis commands in parallel when executed by ACP scheduler. Manual equivalent:
+```bash
+# Sequential first
+/setup && /fetch-issues && /classify
+
+# Then parallel (run in separate messages)
+/analyze-ci
+/analyze-vuln
+/analyze-flaky
+
+# Then sequential again
+/assign-team && /generate-report
 ```
 
 ### Semi-Automated Mode (With Comments)
@@ -259,6 +275,48 @@ Total workflow execution limited to 300 seconds (5 minutes):
 - If timeout occurs, process what was fetched
 
 ## Configuration
+
+The workflow is configured in `.ambient/ambient.json`:
+
+```json
+{
+  "config": {
+    "jira": {
+      "project": "ROX",
+      "filters": [103399, 95004]
+    },
+    "execution": {
+      "mode": "parallel",
+      "parallelCommands": ["/analyze-ci", "/analyze-vuln", "/analyze-flaky"],
+      "sequentialCommands": ["/setup", "/fetch-issues", "/classify", "/assign-team", "/generate-report"]
+    },
+    "timeout": 300,
+    "maxIssues": 20
+  }
+}
+```
+
+### JIRA Configuration
+
+- **Project**: ROX (StackRox/ACS)
+- **Filters**: 103399 (current untriaged), 95004 (previous duty)
+
+### Execution Mode
+
+**Parallel Execution** (faster): The three analysis commands run simultaneously:
+- `/analyze-ci` - Analyzes CI_FAILURE issues
+- `/analyze-vuln` - Analyzes VULNERABILITY issues
+- `/analyze-flaky` - Analyzes FLAKY_TEST issues
+
+This is safe because each command only enriches issues matching its type. Saves ~60-80 seconds compared to sequential execution.
+
+**Sequential Commands** (required order):
+1. `/setup` - Must run first to clone reference data
+2. `/fetch-issues` - Fetches issues
+3. `/classify` - Must complete before analysis (determines which issues each analysis command processes)
+4. *[Parallel analysis commands run here]*
+5. `/assign-team` - Must run after analysis (uses analysis results)
+6. `/generate-report` - Must run last (uses all enriched data)
 
 ### JIRA Filters
 
