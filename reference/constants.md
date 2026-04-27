@@ -7,7 +7,6 @@ Central location for all hardcoded values used throughout the ACS triage workflo
 | Constant | Value | Purpose |
 |----------|-------|---------|
 | FILTER_CURRENT_UNTRIAGED | 103399 | Current untriaged issues filter |
-| FILTER_PREVIOUS_DUTY | 95004 | Previous duty cycle issues filter |
 | PROJECT_KEY | ROX | StackRox JIRA project key |
 
 ## Confidence Thresholds

@@ -1,7 +1,7 @@
 # ACS Triage Report
 
 **Date:** {{date}}
-**Filters:** 103399 (current untriaged), 95004 (previous duty)
+**Filter:** 103399 (current untriaged)
 **Total Issues:** {{total_issues}}
 **StackRox Version:** {{stackrox_version}}
 

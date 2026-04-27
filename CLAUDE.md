@@ -18,7 +18,7 @@ This is a **single-purpose workflow** for automated triage of StackRox/ACS JIRA 
 The workflow provides 8 slash commands:
 
 - `/setup` - Clone StackRox repository for CODEOWNERS and reference data
-- `/fetch-issues` - Retrieve untriaged JIRA issues from filters 103399 and 95004
+- `/fetch-issues` - Retrieve untriaged JIRA issues from filter 103399 (current untriaged)
 - `/classify` - Categorize issues and detect version mismatches
 - `/analyze-ci` - Deep analysis of CI failures
 - `/analyze-vuln` - Apply ProdSec decision tree for vulnerabilities
@@ -83,7 +83,7 @@ The workflow is configured in `.ambient/ambient.json` for automated execution:
   "config": {
     "jira": {
       "project": "ROX",
-      "filters": [103399, 95004]
+      "filter": 103399
     },
     "execution": {
       "mode": "parallel",

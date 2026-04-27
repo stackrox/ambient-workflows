@@ -29,7 +29,7 @@ This workflow provides systematic triage of untriaged StackRox issues using:
 ### Prerequisites
 
 - JIRA MCP connection configured
-- Access to JIRA filters 103399 (current untriaged) and 95004 (previous duty)
+- Access to JIRA filter 103399 (current untriaged)
 - Git access to github.com/stackrox/stackrox and github.com/stackrox/skills
 - Permission to write to /tmp directory
 
@@ -113,10 +113,10 @@ The workflow automatically runs analysis commands in parallel when executed by A
 
 ### Phase 2: Fetch Issues (`/fetch-issues`)
 
-**Purpose:** Retrieve untriaged JIRA issues from filters
+**Purpose:** Retrieve untriaged JIRA issues from filter 103399 (current untriaged)
 
 **Process:**
-- Query filters 103399 and 95004
+- Query filter 103399
 - Limit to 10-20 issues (300s timeout constraint)
 - Extract: key, summary, description, labels, components, priority, affectedVersions, fixVersions, comments
 
@@ -283,7 +283,7 @@ The workflow is configured in `.ambient/ambient.json`:
   "config": {
     "jira": {
       "project": "ROX",
-      "filters": [103399, 95004]
+      "filter": 103399
     },
     "execution": {
       "mode": "parallel",
@@ -299,7 +299,7 @@ The workflow is configured in `.ambient/ambient.json`:
 ### JIRA Configuration
 
 - **Project**: ROX (StackRox/ACS)
-- **Filters**: 103399 (current untriaged), 95004 (previous duty)
+- **Filter**: 103399 (current untriaged)
 
 ### Execution Mode
 

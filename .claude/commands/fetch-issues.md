@@ -2,17 +2,17 @@
 
 ## Purpose
 
-Query JIRA filters for untriaged StackRox/ACS issues and extract essential information including version data for triage analysis. This command retrieves the top 10-20 most recent issues (within 300s timeout constraint) from designated triage filters.
+Query JIRA filter 103399 (current untriaged) for StackRox/ACS issues and extract essential information including version data for triage analysis. This command retrieves the top 10-20 most recent issues within 300s timeout constraint.
 
 ## Prerequisites
 
 - JIRA MCP connection configured
-- Access to filters 103399 (current untriaged) and 95004 (previous duty)
+- Access to filter 103399 (current untriaged)
 - `/setup` command completed (optional but recommended)
 
 ## Process
 
-1. **Query Current Untriaged Filter**
+1. **Query Untriaged Filter**
    - Use `mcp__mcp-atlassian__jira_search` with JQL: `filter = 103399 ORDER BY priority DESC, created ASC`
    - Limit to 10-20 issues to stay within timeout
    - Start with highest priority and oldest created
@@ -33,11 +33,7 @@ Query JIRA filters for untriaged StackRox/ACS issues and extract essential infor
      - **fixVersions** - Target fix release (e.g., ["4.6.0"])
      - comments (for CI failure logs and error details)
 
-3. **Fallback to Previous Duty Filter**
-   - If filter 103399 has <10 issues, query filter 95004
-   - Use same approach: `filter = 95004 ORDER BY priority DESC, created ASC`
-
-4. **Create Issue Objects**
+3. **Create Issue Objects**
    - Structure each issue with all extracted fields
    - Include raw description and comments for later analysis
    - Preserve affectedVersions and fixVersions for version mismatch detection

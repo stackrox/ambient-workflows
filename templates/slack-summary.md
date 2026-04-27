@@ -1,6 +1,6 @@
 # ACS Triage Summary - {{date}}
 
-Processed **{{total}}** untriaged issues from JIRA filters 103399 & 95004
+Processed **{{total}}** untriaged issues from JIRA filter 103399
 
 ## 🎯 High Confidence Recommendations (≥90%)
 
