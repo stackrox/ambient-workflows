@@ -1,0 +1,491 @@
+# Agent Guidelines for ACP Workflows Repository
+
+This document provides rules and guidance for AI agents making changes to this repository.
+
+## Repository Overview
+
+This repository contains workflow definitions for the Ambient Code Platform (ACP). Workflows are automatically discovered by the platform from the `workflows/` directory.
+
+**Key directories:**
+
+```text
+workflows/
+├── workflows/              # All workflow definitions
+│   ├── bugfix/            # Bug fix workflow
+│   ├── triage/            # Issue triage workflow
+│   ├── spec-kit/          # Specification workflow
+│   ├── prd-rfe-workflow/  # PRD/RFE workflow
+│   ├── template-workflow/ # Starter template
+│   └── [your-workflow]/   # New workflows go here
+├── .claude/
+│   └── skills/            # Repository-level skills (workflow-creator, workflow-editor)
+├── .local/                # Local-only files (gitignored); create if needed; request non-sandbox to write
+├── WORKFLOW_DEVELOPMENT_GUIDE.md
+├── AMBIENT_JSON_SCHEMA.md
+├── WORKSPACE_NAVIGATION_GUIDELINES.md
+└── README.md
+```
+
+**Local-only output:** Documents that are only for the local user (e.g. status reports on work-in-progress) should go in `.local/`. The agent should create the `.local/` directory if it does not exist. Because `.local/` is in `.gitignore`, the agent must request execution outside the sandbox (e.g. `required_permissions: ["all"]`) when writing to `.local/`.
+
+---
+
+## Critical Rules
+
+### 1. Never Modify Multiple Workflows Without Explicit Request
+
+Each workflow is independent. When asked to make changes, clarify which specific workflow(s) should be modified. Do not assume changes to one workflow should propagate to others.
+
+### 2. Always Validate JSON Syntax
+
+The `.ambient/ambient.json` file must be valid JSON. After any edit:
+
+- Ensure no trailing commas
+- Ensure all strings are properly quoted
+- Ensure the file parses correctly
+
+### 3. Preserve Existing Functionality
+
+When modifying workflows:
+
+- Keep all existing commands unless explicitly asked to remove them
+- Maintain backward compatibility with existing artifact paths
+- Do not remove agents or skills without explicit instruction
+
+### 4. Follow Markdown Linting Standards
+
+All Markdown files must follow standard linting practices. Common rules:
+
+- **Blank lines around headings**: Add a blank line before and after every heading
+- **Blank lines around lists**: Add a blank line before and after bullet/numbered lists
+- **Blank lines around code blocks**: Add a blank line before and after fenced code blocks
+- **No trailing whitespace**: Remove spaces at the end of lines
+- **Single trailing newline**: Files should end with exactly one blank line
+- **Consistent list markers**: Use `-` for unordered lists throughout
+- **Fenced code blocks should have a language**
+
+Example:
+
+```markdown
+## Heading
+
+Some paragraph text.
+
+- List item one
+- List item two
+
+More text after the list.
+```
+
+### 5. Use the Correct Skill for the Task
+
+This repository has two specialized skills:
+
+| Task | Skill to Use |
+|------|--------------|
+| Create a new workflow from scratch | `workflow-creator` |
+| Modify an existing workflow | `workflow-editor` |
+
+Invoke these skills when appropriate rather than making ad-hoc changes.
+
+---
+
+## Workflow Structure Requirements
+
+Every workflow **must** have:
+
+```text
+workflows/{workflow-name}/
+├── .ambient/
+│   └── ambient.json       # REQUIRED - must have name, description, systemPrompt, startupPrompt
+└── README.md              # Recommended - document the workflow
+```
+
+Optional but common:
+
+```text
+├── .claude/
+│   ├── commands/          # Slash commands (*.md files)
+│   ├── skills/            # Reusable skills
+│   └── agents/            # Agent personas (legacy, prefer skills)
+├── templates/             # Reference templates for artifact generation
+├── scripts/               # Script templates
+└── CLAUDE.md              # Persistent context (behavioral guidelines)
+```
+
+### Required Fields in ambient.json
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `name` | Yes | Display name in UI (2-5 words) |
+| `description` | Yes | Brief explanation (1-3 sentences) |
+| `systemPrompt` | Yes | Core instructions defining agent behavior |
+| `startupPrompt` | Yes | Directive sent to agent as hidden user message at session start (agent responds to it; user sees only the response) |
+| `results` | No | Maps artifact names to output paths (informational only -- not read by the platform) |
+
+---
+
+## Writing SystemPrompts
+
+The `systemPrompt` is the most important part of a workflow. Follow these guidelines:
+
+### Must Include
+
+1. **Role definition**: "You are a [specific role]..."
+2. **Available commands**: List every `/command` with its purpose
+3. **Workflow phases**: Step-by-step methodology
+4. **Output locations**: Where to write artifacts (e.g., `artifacts/{workflow-name}/`)
+5. **Workspace navigation block**: Help Claude find files efficiently
+
+### Workspace Navigation Block
+
+Include this pattern in every systemPrompt (customize paths as needed):
+
+```text
+WORKSPACE NAVIGATION:
+**CRITICAL: Follow these rules to avoid fumbling when looking for files.**
+
+Standard file locations (from workflow root):
+- Config: .ambient/ambient.json (ALWAYS at this path)
+- Commands: .claude/commands/*.md
+- Outputs: artifacts/{workflow-name}/
+
+Tool selection rules:
+- Use Read for: Known paths, standard files, files you just created
+- Use Glob for: Discovery (finding multiple files by pattern)
+- Use Grep for: Content search
+
+Never glob for standard files:
+✅ DO: Read .ambient/ambient.json
+❌ DON'T: Glob **/ambient.json
+```
+
+### Style Guidelines
+
+- Use markdown formatting (headers, lists, code blocks)
+- Be specific about agent behavior, not vague
+- Include error handling guidance
+- Keep under ~5000 characters for readability
+
+---
+
+## Writing Commands
+
+Commands go in `.claude/commands/{command-name}.md`.
+
+### Command File Structure
+
+```markdown
+# /{command-name} - Short Description
+
+## Purpose
+What this command accomplishes.
+
+## Prerequisites
+- What must exist before running this command
+
+## Process
+1. Step one
+2. Step two
+3. Step three
+
+## Output
+- `artifacts/{workflow-name}/{output-file}.md`
+```
+
+### Naming Conventions
+
+- Use kebab-case for filenames: `diagnose.md`, `root-cause.md`
+- Use dot notation for related commands: `prd.create.md`, `prd.review.md`
+- Command name in file should match filename (without extension)
+
+---
+
+## Writing Skills
+
+Skills go in `.claude/skills/{skill-name}/SKILL.md`.
+
+### Skill File Structure
+
+```markdown
+---
+name: skill-name
+description: Brief description of what this skill does
+---
+
+# Skill Name
+
+[Detailed instructions for Claude when this skill is invoked]
+
+## Your Role
+...
+
+## Process
+...
+```
+
+### When to Use Skills vs Commands
+
+| Use Commands for | Use Skills for |
+|------------------|----------------|
+| Single-phase tasks | Complex multi-step workflows |
+| Workflow entry points | Reusable knowledge packages |
+| User-invoked actions | Context that loads on-demand |
+
+---
+
+## Creating New Workflows
+
+### Option 1: Use the workflow-creator skill
+
+```text
+Use the workflow-creator skill to create a new workflow for [purpose].
+Put all files in workflows/{workflow-name}/.
+```
+
+### Option 2: Copy the template
+
+```bash
+cp -r workflows/template-workflow workflows/{new-workflow-name}
+# Then customize .ambient/ambient.json
+```
+
+### Option 3: Create from scratch
+
+1. Create the directory: `workflows/{name}/`
+2. Create `.ambient/ambient.json` with all required fields
+3. Add commands in `.claude/commands/`
+4. Add README.md
+
+### Checklist for New Workflows
+
+- [ ] `.ambient/ambient.json` exists with all 4 required fields
+- [ ] `systemPrompt` includes workspace navigation guidelines
+- [ ] `systemPrompt` lists all available commands
+- [ ] `systemPrompt` specifies output location (`artifacts/{name}/`)
+- [ ] All commands have clear prerequisites and outputs
+- [ ] README.md documents the workflow
+
+---
+
+## Modifying Existing Workflows
+
+### Before Making Changes
+
+1. Read the existing `ambient.json` to understand current behavior
+2. Read existing commands to understand the workflow phases
+3. Identify what specifically needs to change
+
+### Safe Modification Patterns
+
+**Adding a command:**
+
+- Create new file in `.claude/commands/`
+- Add the command to the `systemPrompt` command list
+- Optionally update `results` in ambient.json to document new artifacts (informational only)
+
+**Modifying systemPrompt:**
+
+- Preserve all existing commands unless removing them
+- Keep workspace navigation guidelines
+- Maintain the general structure (role, commands, phases, outputs)
+
+**Changing artifact paths:**
+
+- Update `systemPrompt` to reference the new paths
+- Optionally update `results` field to match (informational only)
+
+### Use workflow-editor for Complex Changes
+
+For significant modifications, invoke the workflow-editor skill which validates changes and maintains consistency.
+
+---
+
+## Testing Changes
+
+Before committing changes:
+
+1. **Validate JSON**: Ensure `.ambient/ambient.json` is valid
+2. **Check references**: Commands listed in systemPrompt exist as files
+3. **Verify paths**: Output paths in systemPrompt reference the `artifacts/` directory
+
+### Testing in ACP
+
+Use the "Custom Workflow" feature to test without merging to main:
+
+1. Push your branch to GitHub
+2. In ACP, select "Custom Workflow..."
+3. Enter the repo URL, your branch name, and path
+4. Test the workflow end-to-end
+
+### Custom Workflow Fields
+
+When loading a custom workflow in ACP, you need three fields:
+
+| Field | Value |
+|-------|-------|
+| **URL** | The fork's git URL (e.g., `https://github.com/YOUR-USERNAME/workflows.git`) |
+| **Branch** | The branch with your changes (e.g., `feature/my-changes`) |
+| **Path** | The workflow directory relative to the repo root (e.g., `workflows/bugfix`) |
+
+**After creating a PR for a workflow change, always report these three fields
+to the user** so they can immediately test the changes without having to look
+them up.
+
+---
+
+## Submitting Pull Requests
+
+### Use a Fork
+
+Always push branches to your personal fork rather than directly to the main repository. This keeps the main repository clean and ensures proper review processes.
+
+```bash
+# Add your fork as a remote
+git remote add fork https://github.com/YOUR-USERNAME/workflows.git
+
+# Push to your fork
+git push -u fork feature/my-changes
+```
+
+### Submit as Draft First
+
+When creating a pull request, submit it as a **draft** initially. This signals that the work may still be in progress and invites early feedback without triggering full review.
+
+```bash
+gh pr create --draft --title "Add new workflow" --body "..."
+```
+
+Convert to "Ready for Review" once all changes are complete and tests pass.
+
+### Add Changes as New Commits
+
+When making additional changes to an open pull request, **always add new commits** rather than amending or rebasing existing commits. This:
+
+- Preserves review history and comments
+- Makes it easy for reviewers to see what changed
+- Avoids force-push complications
+
+```bash
+# ✅ DO: Add a new commit
+git add .
+git commit -m "Address review feedback: fix typo in systemPrompt"
+git push
+
+# ❌ DON'T: Amend and force push
+git commit --amend
+git push --force
+```
+
+Squashing commits can happen at merge time if the repository is configured for it.
+
+### Sandbox Restrictions
+
+The following commands require `required_permissions: ['all']` to run outside the sandbox:
+
+| Command | Reason |
+|---------|--------|
+| `pip install .` | Needs network access and system SSL certificates |
+| `git push` | Needs network access and system SSL certificates |
+| `gh pr create` | Needs network access and system SSL certificates |
+
+> **Note:** The sandbox blocks access to files in `.gitignore` (like `.env`).
+
+## Common Mistakes to Avoid
+
+### JSON Errors
+
+```json
+// ❌ Trailing comma
+{
+  "name": "My Workflow",
+}
+
+// ✅ No trailing comma
+{
+  "name": "My Workflow"
+}
+```
+
+### Vague SystemPrompts
+
+```json
+// ❌ Too vague
+"systemPrompt": "You help with development"
+
+// ✅ Specific and actionable
+"systemPrompt": "You are a bug fix specialist.\n\n## Commands\n- /diagnose - Analyze root cause\n- /fix - Implement the fix\n\n## Output\nWrite all artifacts to artifacts/bugfix/"
+```
+
+### Missing Command References
+
+```json
+// ❌ Commands exist as files but not listed in systemPrompt
+"systemPrompt": "You are a helper."  // But /diagnose.md exists
+
+// ✅ All commands documented
+"systemPrompt": "You are a helper.\n\n## Commands\n- /diagnose - Run diagnosis"
+```
+
+### Inconsistent Artifact Paths
+
+```json
+// ❌ systemPrompt references a non-standard artifact path
+"systemPrompt": "Write to output/bugs/"
+
+// ✅ Use the standard artifacts directory
+"systemPrompt": "Write to artifacts/bugfix/"
+```
+
+---
+
+## Reference Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [WORKFLOW_DEVELOPMENT_GUIDE.md](WORKFLOW_DEVELOPMENT_GUIDE.md) | Complete development guide |
+| [AMBIENT_JSON_SCHEMA.md](AMBIENT_JSON_SCHEMA.md) | ambient.json field reference |
+| [WORKSPACE_NAVIGATION_GUIDELINES.md](WORKSPACE_NAVIGATION_GUIDELINES.md) | File navigation best practices |
+| [README.md](README.md) | Repository overview |
+
+---
+
+## Quick Reference
+
+### File Locations
+
+| What | Where |
+|------|-------|
+| Workflow config | `workflows/{name}/.ambient/ambient.json` |
+| Commands | `workflows/{name}/.claude/commands/*.md` |
+| Skills | `workflows/{name}/.claude/skills/{skill}/SKILL.md` |
+| Templates | `workflows/{name}/templates/` |
+| Artifacts (runtime) | `artifacts/{name}/` |
+| Local-only (e.g. WIP status) | `.local/` (create if needed; request non-sandbox to write) |
+
+### Required ambient.json Fields
+
+```json
+{
+  "name": "Workflow Name",
+  "description": "Brief description",
+  "systemPrompt": "You are...\n\n## Commands\n...\n\n## Output\nartifacts/...",
+  "startupPrompt": "Greet the user, briefly introduce yourself, and ask what they'd like to work on."
+}
+```
+
+### Command File Template
+
+```markdown
+# /command-name - Description
+
+## Purpose
+What this does.
+
+## Process
+1. Step one
+2. Step two
+
+## Output
+- `artifacts/{workflow}/output.md`
+```
