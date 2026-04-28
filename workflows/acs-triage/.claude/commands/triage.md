@@ -161,24 +161,14 @@ Apply multi-strategy approach with confidence scoring.
 ```
 
 ### Phase 6: Generate Reports
-Create multiple output formats.
+Create output reports in two formats.
 
 **6a. Markdown Report** (`artifacts/acs-triage/triage-report.md`)
 - Summary statistics (by type, team, confidence)
 - Detailed table with all triaged issues
 - Low confidence section flagged for manual review
 
-**6b. HTML Dashboard** (`artifacts/acs-triage/report.html`)
-- Interactive table with sorting/filtering
-- Stats cards (total, by type, avg confidence)
-- Color-coded confidence levels
-
-**6c. Slack Summary** (`artifacts/acs-triage/slack-summary.md`)
-- Executive summary
-- High-confidence recommendations (≥90%)
-- Action items
-
-**6d. Machine-Readable Summary** (`artifacts/acs-triage/summary.json`)
+**6b. Machine-Readable Summary** (`artifacts/acs-triage/summary.json`)
 ```json
 {
   "total_issues": 15,
@@ -208,8 +198,6 @@ All artifacts are created in `artifacts/acs-triage/`:
 - `setup-info.json` - Setup metadata (version, timestamp)
 - `issues.json` - Complete issue data with all enrichments
 - `triage-report.md` - Detailed markdown report
-- `report.html` - Interactive HTML dashboard
-- `slack-summary.md` - Slack notification template
 - `summary.json` - Machine-readable summary
 
 ## Usage Examples

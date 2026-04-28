@@ -110,8 +110,6 @@ All artifacts go to `artifacts/acs-triage/`:
 - `setup-info.json` - Setup metadata
 - `issues.json` - Raw and enriched issue data
 - `triage-report.md` - Detailed markdown report
-- `report.html` - Interactive HTML dashboard
-- `slack-summary.md` - Slack notification
 - `summary.json` - Machine-readable summary
 
 ## Development Guidelines
