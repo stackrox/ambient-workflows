@@ -122,6 +122,7 @@ Apply multi-strategy approach with confidence scoring.
 1. **CODEOWNERS Match (95% confidence)** - File path → team mapping
    - Source: `/tmp/triage/stackrox/.github/CODEOWNERS`
    - Match file_paths from ci_analysis
+   - **Exception:** If match is @janisz for CI_FAILURE, skip (he only reviews Groovy, not responsible for CI failures)
    - Adjust to 75% if version_mismatch
 
 2. **Error Signature Match (85-90% confidence)** - Known error → team
