@@ -15,47 +15,39 @@ This is a **single-purpose workflow** for automated triage of StackRox/ACS JIRA 
 
 ## Workflow Commands
 
-The workflow provides 8 slash commands:
+The workflow provides 2 main commands:
 
-- `/setup` - Clone StackRox repository for CODEOWNERS and reference data
-- `/fetch-issues` - Retrieve untriaged JIRA issues from filter 103399 (current untriaged)
-- `/classify` - Categorize issues and detect version mismatches
-- `/analyze-ci` - Deep analysis of CI failures
-- `/analyze-vuln` - Apply ProdSec decision tree for vulnerabilities
-- `/analyze-flaky` - Pattern matching for flaky tests
-- `/assign-team` - Multi-strategy team assignment with confidence scores
-- `/generate-report` - Create markdown, HTML, and Slack reports
-- `/comment-issues` - Add triage comments to JIRA (⚠️ WRITES to JIRA, optional)
+- `/triage` - Complete end-to-end triage pipeline: setup → fetch → classify → analyze → assign → report (READ-ONLY)
+- `/triage --comment` - Full triage pipeline + post analysis comments to JIRA (⚠️ WRITES to JIRA)
+- `/comment-issues` - Standalone command to add triage comments to JIRA (requires prior /triage run)
+
+**Simplified Design:** All triage steps are consolidated into a single `/triage` command for ease of use.
 
 ## Directory Structure
 
 ```
-ambient-workflows/
+workflows/acs-triage/
 ├── .ambient/
 │   └── ambient.json              # Workflow configuration
 ├── .claude/
-│   └── commands/                 # 7 command files
-│       ├── setup.md
-│       ├── fetch-issues.md
-│       ├── classify.md
-│       ├── analyze-ci.md
-│       ├── analyze-vuln.md
-│       ├── analyze-flaky.md
-│       ├── assign-team.md
-│       └── generate-report.md
-├── reference/                    # StackRox domain knowledge (to be created)
+│   └── commands/                 # 2 command files
+│       ├── triage.md             # Main triage pipeline
+│       └── comment-issues.md     # Optional JIRA commenting
+├── reference/                    # StackRox domain knowledge
+│   ├── teams.md
 │   ├── CODEOWNERS-patterns.md
 │   ├── error-signatures.md
 │   ├── team-mappings.md
 │   ├── vulnerability-decision-tree.md
-│   └── flaky-test-patterns.md
-├── templates/                    # Report templates (to be created)
+│   ├── flaky-test-patterns.md
+│   └── constants.md
+├── templates/                    # Report templates
 │   ├── triage-report.md
 │   ├── report.html
 │   └── slack-summary.md
 ├── CLAUDE.md                     # This file
 ├── README.md                     # Complete documentation
-└── FIELD_REFERENCE.md           # Field definitions (to be created)
+└── FIELD_REFERENCE.md           # Field definitions
 ```
 
 ## StackRox/ACS Domain Knowledge
@@ -76,7 +68,7 @@ See `reference/constants.md` for all confidence thresholds and configuration val
 
 ## Automated Execution
 
-The workflow is configured in `.ambient/ambient.json` for automated execution:
+The workflow is configured in `.ambient/ambient.json`:
 
 ```json
 {
@@ -85,20 +77,17 @@ The workflow is configured in `.ambient/ambient.json` for automated execution:
       "project": "ROX",
       "filter": 103399
     },
-    "execution": {
-      "mode": "parallel",
-      "parallelCommands": ["/analyze-ci", "/analyze-vuln", "/analyze-flaky"],
-      "sequentialCommands": ["/setup", "/fetch-issues", "/classify", "/assign-team", "/generate-report"]
-    }
+    "timeout": 300,
+    "maxIssues": 20
   }
 }
 ```
 
-**Parallel Execution**: Analysis commands run simultaneously for speed (saves 60-80 seconds). Safe because each command only enriches issues matching its type.
+**Simplified Execution**: The `/triage` command internally handles all phases sequentially, with parallel execution for type-specific analysis (CI/vuln/flaky) to save 60-80 seconds.
 
 ## Version Mismatch Handling
 
-The `/setup` command clones latest `main` branch. Issues with older `affectedVersions` may have:
+The triage workflow clones latest `main` branch from StackRox repo. Issues with older `affectedVersions` may have:
 - Different file ownership (CODEOWNERS changes)
 - Moved/renamed components
 - Changed team structures
@@ -109,11 +98,10 @@ The `/setup` command clones latest `main` branch. Issues with older `affectedVer
 
 ## Reference Data Sources
 
-After `/setup`, reference data is loaded from cloned repositories:
+The workflow uses reference data from:
 
-- `/tmp/triage/stackrox/.github/CODEOWNERS` - File path → team mappings
-- `/tmp/triage/stackrox/.claude/agents/stackrox-ci-failure-investigator.md` - Error patterns
-- `/tmp/triage/skills/plugins/rhacs-patch-eval/` - Vulnerability assessment
+- `/tmp/triage/stackrox/.github/CODEOWNERS` - File path → team mappings (cloned during setup phase)
+- `reference/*.md` - Local domain knowledge files for error patterns, team mappings, decision trees
 
 ## Output Locations
 
@@ -165,12 +153,11 @@ To test this workflow:
 
 ## Common Pitfalls to Avoid
 
-1. **Don't modify JIRA automatically** - This is READ-ONLY
-2. **Don't skip version detection** - Critical for confidence adjustment
+1. **Don't modify JIRA automatically** - Use `/triage` (READ-ONLY) or `/triage --comment` (explicit write)
+2. **Don't skip version detection** - Critical for confidence adjustment (handled automatically)
 3. **Don't ignore low confidence** - Flag for manual review
-4. **Don't exceed timeout** - Limit to 10-20 issues
-5. **Don't assume CODEOWNERS is current** - Check version mismatch
-6. **Don't forget to run /setup** - Reference data needed
+4. **Don't exceed timeout** - Limit to 10-20 issues (configured in ambient.json)
+5. **Don't assume CODEOWNERS is current** - Version mismatches are detected and flagged
 
 ## Key Files
 
