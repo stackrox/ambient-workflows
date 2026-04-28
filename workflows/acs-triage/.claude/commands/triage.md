@@ -5,8 +5,10 @@
 Complete end-to-end triage workflow for StackRox/ACS JIRA issues. Fetches untriaged issues, classifies by type, performs specialized analysis, assigns teams with confidence scoring, and generates comprehensive reports.
 
 **Options:**
-- `/triage` - Full triage pipeline (READ-ONLY, no JIRA writes)
+- `/triage` - Full triage pipeline for filter 103399 (READ-ONLY, no JIRA writes)
 - `/triage --comment` - Full triage + post comments to JIRA issues
+- `/triage ROX-12345` - Triage a specific issue by key
+- `/triage ROX-12345 --comment` - Triage specific issue and post comment
 
 ## Prerequisites
 
@@ -33,12 +35,20 @@ Clone StackRox repository for CODEOWNERS and reference data if not already prese
 **Output:** Setup metadata in `artifacts/acs-triage/setup-info.json`
 
 #### Phase 1b: Fetch Issues - Async
-Query JIRA filter 103399 for untriaged issues.
+Query JIRA for untriaged issues or fetch a specific issue.
 
 **Actions:**
+
+**If specific issue key provided (e.g., ROX-12345):**
+- Use `mcp__mcp-atlassian__jira_get_issue` with the provided key
+- Extract all fields: key, summary, description, labels, components, priority, status, created, updated, affectedVersions, fixVersions, comments
+- Validate issue exists, exit with error if not found
+
+**If no issue key (default behavior):**
 - Query JIRA filter 103399 (ONE query, order by priority DESC then created ASC)
 - Limit to 10-20 issues (timeout constraint: 300s)
 - Extract: key, summary, description, labels, components, priority, status, created, updated, affectedVersions, fixVersions, comments
+- **CRITICAL:** If filter returns 0 issues, exit immediately with message: "No untriaged issues found in filter 103399. Triage complete."
 
 **Output:** Raw issue data in `artifacts/acs-triage/issues.json`
 
@@ -203,14 +213,24 @@ All artifacts are created in `artifacts/acs-triage/`:
 
 ## Usage Examples
 
-Basic triage (read-only):
+Triage all untriaged issues (read-only):
 ```
 /triage
 ```
 
-Triage with JIRA comments:
+Triage all untriaged issues and post comments:
 ```
 /triage --comment
+```
+
+Triage a specific issue:
+```
+/triage ROX-12345
+```
+
+Triage a specific issue and post comment:
+```
+/triage ROX-12345 --comment
 ```
 
 ## Success Criteria
@@ -225,6 +245,8 @@ After running this command, you should have:
 
 ## Error Handling
 
+- **Empty filter results**: Exit immediately with "No untriaged issues found" message (don't proceed)
+- **Issue not found**: If specific issue key provided but doesn't exist, exit with error
 - **JIRA timeout**: Process what you have, note incomplete in report
 - **Unknown issue type**: Mark as UNKNOWN, include raw description for manual triage
 - **No team match**: Use "Needs Manual Assignment" with evidence summary
