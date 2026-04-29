@@ -1,123 +1,334 @@
-# ACP Workflow Templates
+# ACS Triage Workflow
 
-Out-of-the-box workflow templates for the Ambient Code Platform (ACP). These workflows provide structured processes for AI agents to follow when working on complex tasks.
-
-> **For workflow developers:** See the [Workflow Development Guide](WORKFLOW_DEVELOPMENT_GUIDE.md) for comprehensive documentation on creating and modifying workflows.
+Automated triage for StackRox/ACS JIRA issues with intelligent team assignment using multi-strategy confidence scoring. Analyzes CI failures, security vulnerabilities, and flaky tests to generate actionable reports.
 
 ## Overview
 
-Workflows are structured configurations that guide Claude through multi-step processes. Each workflow defines:
+This workflow provides systematic triage of untriaged StackRox issues using:
 
-- **System prompt**: Core instructions defining Claude's behavior and methodology
-- **Startup prompt**: Initial greeting when the workflow activates
-- **Commands**: Slash commands (e.g., `/diagnose`, `/fix`) for specific workflow phases
-- **Artifacts**: Output locations for generated files
+- **Multi-Strategy Team Assignment**: 5-strategy priority system with 95%-70% confidence scores
+- **Specialized Analysis**: Custom decision trees for CI failures, vulnerabilities, and flaky tests
+- **Version Awareness**: Detects mismatches between issue versions and current codebase
+- **READ-ONLY Mode**: Generates reports and recommendations without modifying JIRA
+- **Multiple Output Formats**: Markdown, interactive HTML, Slack summaries, and JSON
 
-The platform automatically discovers workflows from this repository. Any directory under `workflows/` with a valid `.ambient/ambient.json` file appears in the UI.
+### 8-Phase Workflow
 
-## Available Workflows
+1. **Setup** - Clone StackRox repository for CODEOWNERS and reference data
+2. **Fetch Issues** - Retrieve untriaged issues from JIRA filters (103399, 95004)
+3. **Classify** - Categorize as CI_FAILURE, VULNERABILITY, FLAKY_TEST, or UNKNOWN
+4. **Analyze** - Apply specialized analysis based on type
+5. **Assign Team** - Multi-strategy assignment with confidence scoring
+6. **Generate Reports** - Create markdown, HTML, and Slack outputs
+7. **Review** - Human review of recommendations
+8. **Execute** - Manual JIRA updates based on report (not automated)
 
-| Workflow | Description | Commands |
-|----------|-------------|----------|
-| [**bugfix**](workflows/bugfix/) | Systematic bug resolution with reproduction, diagnosis, fix, and testing phases | `/reproduce`, `/diagnose`, `/fix`, `/test`, `/document` |
-| [**triage**](workflows/triage/) | Issue backlog triage with actionable reports and bulk operations | Conversational |
-| [**spec-kit**](workflows/spec-kit/) | Spec-driven development for feature planning and implementation | `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement` |
-| [**prd-rfe-workflow**](workflows/prd-rfe-workflow/) | Create Product Requirements Documents and break them into RFE tasks | `/prd.discover`, `/prd.create`, `/rfe.breakdown`, `/rfe.prioritize` |
-| [**amber-interview**](workflows/amber-interview/) | Collect user feedback through guided conversations | `/feedback`, `/interview` |
-| [**template-workflow**](workflows/template-workflow/) | Starter template demonstrating workflow structure | `/init`, `/analyze`, `/plan`, `/execute`, `/verify` |
+## Getting Started
 
-### Bug Fix Workflow
+### Prerequisites
 
-A systematic 5-phase workflow for resolving software bugs:
+- JIRA MCP connection configured
+- Access to JIRA filters 103399 (current untriaged) and 95004 (previous duty)
+- Git access to github.com/stackrox/stackrox and github.com/stackrox/skills
+- Permission to write to /tmp directory
 
-1. **Reproduce** - Confirm and document the bug behavior
-2. **Diagnose** - Perform root cause analysis
-3. **Fix** - Implement the solution
-4. **Test** - Verify with regression tests
-5. **Document** - Create release notes and update issues
+### Quick Start
 
-Automatically invokes specialized agents (Stella for complex debugging, Neil for testing strategy) when needed.
+```bash
+# Phase 1: Initialize
+/setup
 
-### Triage Workflow
+# Phase 2: Fetch untriaged issues
+/fetch-issues
 
-Efficiently triage repository issue backlogs:
+# Phase 3: Classify issues by type and detect version mismatches
+/classify
 
-- Analyzes all open issues
-- Generates recommendations (CLOSE, FIX_NOW, BACKLOG, NEEDS_INFO, etc.)
-- Produces an interactive HTML report with accept/reject checkboxes
-- Creates bulk operation scripts for executing approved actions
+# Phase 4-6: Run specialized analysis (automatically determined by type)
+/analyze-ci       # For CI_FAILURE issues
+/analyze-vuln     # For VULNERABILITY issues
+/analyze-flaky    # For FLAKY_TEST issues
 
-### Spec Kit Workflow
+# Phase 7: Assign teams with confidence scoring
+/assign-team
 
-Specification-driven development workflow:
+# Phase 8: Generate reports
+/generate-report
+```
 
-- Create detailed feature specifications
-- Generate technical implementation plans
-- Break down plans into actionable tasks
-- Guide implementation with checklists
+### Automated Mode
 
-### PRD/RFE Workflow
+For scheduled execution (weekdays 3 PM UTC), run all commands in sequence:
 
-Product requirements documentation workflow:
+```bash
+/setup && /fetch-issues && /classify && /analyze-ci && /analyze-vuln && /analyze-flaky && /assign-team && /generate-report
+```
 
-- Discovery phase for understanding needs
-- Requirements gathering
-- PRD creation with structured templates
-- Breakdown into Request for Enhancement (RFE) items
-- Prioritization matrix
+## Workflow Phases
 
-## Using Workflows
+### Phase 1: Setup (`/setup`)
 
-### In the ACP UI
+**Purpose:** Clone StackRox repository for CODEOWNERS and reference data
 
-1. Navigate to your session
-2. Open the **Workflows** panel
-3. Select a workflow from the list
-4. The workflow loads and displays its startup prompt
+**Process:**
+- Clone stackrox and skills repositories to /tmp/triage/
+- Extract current version for version mismatch detection
+- Verify key files exist (CODEOWNERS, stackrox-ci-failure-investigator.md)
 
-### Custom Workflows
+**Output:** `artifacts/acs-triage/setup-info.json`
 
-To test a workflow from a branch or external repository:
+**⚠️ Important:** Clones latest `main` branch - issues with older `affectedVersions` may have outdated file ownership
 
-1. Select **"Custom Workflow..."** in the UI
-2. Enter the Git URL, branch, and path
-3. Click **"Load Workflow"**
+### Phase 2: Fetch Issues (`/fetch-issues`)
 
-This is useful for:
+**Purpose:** Retrieve untriaged JIRA issues from filters
 
-- Testing changes before merging to main
-- Using workflows from other repositories
-- Development and iteration
+**Process:**
+- Query filters 103399 and 95004
+- Limit to 10-20 issues (300s timeout constraint)
+- Extract: key, summary, description, labels, components, priority, affectedVersions, fixVersions, comments
 
-## Creating or Modifying Workflows
+**Output:** `artifacts/acs-triage/issues.json`
 
-See the **[Workflow Development Guide](WORKFLOW_DEVELOPMENT_GUIDE.md)** for complete instructions on:
+### Phase 3: Classify (`/classify`)
 
-- Workflow structure and required files
-- Creating workflows from scratch or template
-- Using the `workflow-creator` skill
-- Testing with "Custom Workflow..."
-- Best practices for commands, skills, and system prompts
+**Purpose:** Categorize issues and detect version mismatches
 
-## Reference Documentation
+**Classification Logic:**
+- **VULNERABILITY**: CVE-* labels, CVE patterns in summary
+- **FLAKY_TEST**: flaky-test labels, known flaky test patterns
+- **CI_FAILURE**: CI_Failure labels, stack traces in description
+- **UNKNOWN**: No patterns match
 
-| Document | Purpose |
-|----------|---------|
-| [WORKFLOW_DEVELOPMENT_GUIDE.md](WORKFLOW_DEVELOPMENT_GUIDE.md) | Complete guide for workflow developers |
-| [AMBIENT_JSON_SCHEMA.md](AMBIENT_JSON_SCHEMA.md) | ambient.json field reference |
-| [WORKSPACE_NAVIGATION_GUIDELINES.md](WORKSPACE_NAVIGATION_GUIDELINES.md) | Best practices for file navigation in systemPrompts |
-| [AGENTS.md](AGENTS.md) | Guidelines for AI agents modifying this repository |
+**Version Detection:**
+- Compare issue `affectedVersions` against current stackrox version
+- Flag mismatches (e.g., issue affects 4.5.x, using 4.7.x CODEOWNERS)
+
+**Output:** Updated `issues.json` with type and version mismatch fields
+
+### Phase 4-6: Specialized Analysis
+
+#### `/analyze-ci` - CI Failure Analysis
+
+**For:** CI_FAILURE issues
+
+**Process:**
+- Extract build metadata, error messages, stack traces, file paths
+- Classify error type (GraphQL, panic, timeout, network, image, infrastructure)
+- Match error signatures from stackrox-ci-failure-investigator.md
+- Check for known flaky patterns
+
+**Output:** `ci_analysis` field with error_type, file_paths, error_signature_match
+
+#### `/analyze-vuln` - Vulnerability Analysis
+
+**For:** VULNERABILITY issues
+
+**ProdSec Decision Tree (6 steps):**
+1. Version support check → CLOSE if unsupported
+2. Severity threshold → CLOSE if Low or Moderate <7.0 CVSS
+3. Container applicability → CLOSE if database with npm/Go (false positive)
+4. Duplicate detection → DUPLICATE if CVE already exists
+5. Impact analysis → CLOSE if VEX false positive
+6. Team assignment by container
+
+**Output:** `vuln_analysis` field with decision tree results and team assignment
+
+#### `/analyze-flaky` - Flaky Test Analysis
+
+**For:** FLAKY_TEST issues
+
+**Process:**
+- Match known flaky patterns (GlobalSearch, PolicyFieldsTest, NetworkFlowTest, etc.)
+- Estimate frequency from JIRA history (>10/month = High, 3-10 = Medium, <3 = Low)
+- Assign to test owner using CODEOWNERS
+
+**Output:** `flaky_analysis` field with pattern match and frequency data
+
+### Phase 7: Team Assignment (`/assign-team`)
+
+**Purpose:** Multi-strategy team assignment with confidence scoring
+
+Uses 5 strategies in priority order. See `reference/constants.md` for confidence thresholds and version mismatch adjustments.
+
+**Output:** `team_assignment` field with assigned_team, confidence, strategy, evidence
+
+### Phase 8: Generate Reports (`/generate-report`)
+
+**Purpose:** Create multiple report formats
+
+**Outputs:**
+
+1. **triage-report.md** - Detailed markdown with:
+   - Executive summary
+   - Statistics by type/team/confidence
+   - Main triage table
+   - High-confidence recommendations (≥80%)
+   - Version mismatch warnings
+
+2. **report.html** - Interactive dashboard with:
+   - Stats cards (type, team, confidence counts)
+   - Filters (type, team, confidence, version mismatch)
+   - Sortable table (click headers to sort)
+   - Search box (filter by key/summary)
+
+3. **slack-summary.md** - Concise summary for Slack:
+   - High-confidence recommendations (≥90%)
+   - Issue counts by team
+   - Version mismatch count
+   - Links to full reports
+
+4. **summary.json** - Machine-readable data for automation
+
+## Team Assignment Strategies
+
+See `reference/constants.md` for complete strategy details, confidence thresholds, and priority order.
+
+See `reference/teams.md` for complete team list and responsibilities.
+
+## Known Limitations
+
+### Version Mismatch
+
+The `/setup` command clones the latest `main` branch of stackrox for CODEOWNERS and reference data. Issues with older `affectedVersions` (e.g., 4.4.x, 4.5.x) may have different file ownership than current main.
+
+See `reference/constants.md` for version mismatch confidence adjustments.
+
+**Mitigation:**
+- `/classify` detects version mismatches using `affectedVersions` field
+- Reports flag mismatched issues with ⚠️ symbol
+- Confidence scores automatically adjusted
+
+### READ-ONLY Mode
+
+This workflow generates reports and recommendations but **does not modify JIRA automatically**. All actions must be executed manually by humans after review.
+
+### Timeout Constraint
+
+Total workflow execution limited to 300 seconds (5 minutes):
+- Issue limit: 10-20 per session
+- Prioritizes highest priority and oldest created
+- If timeout occurs, process what was fetched
+
+## Configuration
+
+### JIRA Filters
+
+- **Filter 103399** - Current untriaged issues (primary)
+- **Filter 95004** - Previous duty issues (fallback)
+
+### File Locations
+
+```
+/tmp/triage/
+├── stackrox/                    # Cloned by /setup
+│   ├── .github/CODEOWNERS       # Team ownership by file path
+│   └── .claude/agents/
+│       └── stackrox-ci-failure-investigator.md
+├── skills/                      # Cloned by /setup
+│   └── plugins/rhacs-patch-eval/
+└── artifacts/acs-triage/        # Workflow outputs
+    ├── setup-info.json
+    ├── issues.json
+    ├── triage-report.md
+    ├── report.html
+    ├── slack-summary.md
+    └── summary.json
+```
+
+## Output Formats
+
+### Markdown Report (triage-report.md)
+
+- Best for: Reading, sharing, archiving
+- Sections: Metadata, executive summary, statistics, triage table, high-confidence recommendations
+- Format: GitHub-flavored markdown
+
+### HTML Dashboard (report.html)
+
+- Best for: Interactive exploration, filtering, sorting
+- Features: Stats cards, filters, sortable table, search
+- Requirements: Modern browser with JavaScript
+
+### Slack Summary (slack-summary.md)
+
+- Best for: Quick team notifications
+- Content: High-confidence recommendations, team counts, version mismatch warnings
+- Format: Copy/paste ready for Slack
+
+### Summary JSON (summary.json)
+
+- Best for: Automation, metrics tracking, programmatic access
+- Content: Statistics, high-confidence issues, manual review needed
+- Format: Machine-readable JSON
+
+## Best Practices
+
+1. **Run /setup first** - Ensures latest CODEOWNERS and reference data
+2. **Review high-confidence recommendations** (≥90%) - Usually accurate, but verify
+3. **Manually review low-confidence** (<70%) - Requires human judgment
+4. **Check version mismatches** - Older versions may have different ownership
+5. **Use HTML dashboard for exploration** - Interactive filters help find patterns
+6. **Share Slack summary with team** - Keeps everyone informed
+7. **Track metrics** - Use summary.json for trend analysis
+8. **Re-run periodically** - New issues arrive daily
+
+## Troubleshooting
+
+### Problem: JIRA MCP timeout
+
+**Solution:**
+- Reduce issue limit in `/fetch-issues` (10 instead of 20)
+- Run multiple smaller batches
+- Check JIRA API rate limits
+
+### Problem: Git clone fails in /setup
+
+**Solution:**
+- Check network connectivity
+- Verify Git credentials
+- Use `git pull` if repositories already cloned
+
+### Problem: No team assignment (0% confidence)
+
+**Cause:** No CODEOWNERS match, error signature, or service name found
+
+**Solution:**
+- Review issue description for clues
+- Search similar issues manually
+- Assign based on domain knowledge
+- Flag as "Needs Manual Assignment"
+
+### Problem: Version mismatch flagged incorrectly
+
+**Cause:** Issue has no `affectedVersions` field
+
+**Solution:**
+- Check JIRA issue for version labels
+- If truly version-agnostic, ignore warning
+- If specific version, update JIRA `affectedVersions` field
 
 ## Contributing
 
-To contribute a workflow:
+To improve this workflow:
 
-1. Fork this repository
-2. Create a new workflow directory under `workflows/`
-3. Follow the structure guidelines
-4. Test using the "Custom Workflow" feature
-5. Submit a pull request with documentation
+1. **Add new error signatures** - Update stackrox-ci-failure-investigator.md in stackrox repo
+2. **Document known flaky tests** - Add patterns to stackrox-ci-failure-investigator.md
+3. **Improve CODEOWNERS** - Keep stackrox/.github/CODEOWNERS up-to-date
+4. **Enhance decision trees** - Update command files for better logic
+5. **Report issues** - Create issues for incorrect team assignments
 
-## License
+## Support
 
-This repository is provided under the MIT License. See LICENSE for details.
+For issues or questions:
+- Open an issue in the ambient-workflows repository
+- Review command files in `.claude/commands/` for detailed logic
+- Check `FIELD_REFERENCE.md` for field definitions
+- Refer to StackRox CODEOWNERS for team ownership questions
+
+---
+
+**Created with:** ACP Workflow Creator
+**Workflow Type:** Domain-Specific Triage
+**Version:** 1.0.0
+**Last Updated:** 2024-04-27
