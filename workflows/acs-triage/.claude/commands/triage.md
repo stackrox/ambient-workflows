@@ -208,6 +208,11 @@ Only if `--comment` flag is provided.
 
 **Actions:**
 - For each issue with confidence ≥80%:
+  - **Convert team mention:** Convert GitHub team handle to JIRA team mention
+    - Use mapping from `reference/jira-team-mappings.md`
+    - Format: `[Team Display Name](https://redhat.atlassian.net/jira/people/team/{team-id}?ref=jira$&src=issue)`
+    - Example: `@stackrox/core-workflows` → `[ACS Core Workflows](https://redhat.atlassian.net/jira/people/team/ec74d716-af36-4b3c-950f-f79213d08f71-1813?ref=jira$&src=issue)`
+    - Fall back to plain text team name if not in mapping
   - **Post comment:** Post structured comment with team recommendation, confidence, reasoning
     - Use comment format from `templates/jira-comment.md`
     - Use `mcp__mcp-atlassian__jira_add_comment`
@@ -220,6 +225,8 @@ Only if `--comment` flag is provided.
 - Log all posted comments, labels added, and skipped issues (with reason)
 
 **Comment Template:** See `templates/jira-comment.md` for format and variable substitution.
+
+**Team Mention Mapping:** See `reference/jira-team-mappings.md` for GitHub → JIRA team ID conversion.
 
 **Idempotency:** Issues with `auto-triaged` label are excluded in Phase 1b search. This workflow is safe to run repeatedly - only new untriaged issues will be processed.
 
