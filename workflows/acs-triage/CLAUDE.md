@@ -18,10 +18,12 @@ This is a **single-purpose workflow** for automated triage of StackRox/ACS JIRA 
 The workflow provides 2 main commands:
 
 - `/triage` - Complete end-to-end triage pipeline: setup → fetch → classify → analyze → assign → report (READ-ONLY)
-- `/triage --comment` - Full triage pipeline + post analysis comments to JIRA (⚠️ WRITES to JIRA)
+- `/triage --comment` - Full triage pipeline + post analysis comments to JIRA + add auto-triaged label (⚠️ WRITES to JIRA)
 - `/comment-issues` - Standalone command to add triage comments to JIRA (requires prior /triage run)
 
 **Simplified Design:** All triage steps are consolidated into a single `/triage` command for ease of use.
+
+**Idempotent Execution:** The workflow uses JQL search with `labels NOT IN (auto-triaged)` exclusion. After triaging an issue and posting a comment, the `auto-triaged` label is added. This makes the workflow safe to run repeatedly - only new untriaged issues will be processed.
 
 ## Directory Structure
 
@@ -75,7 +77,8 @@ The workflow is configured in `.ambient/ambient.json`:
   "config": {
     "jira": {
       "project": "ROX",
-      "filter": 103399
+      "jql": "project = ROX AND (type = Bug OR type = Vulnerability OR type = Weakness OR type = Ticket) AND status = New AND parent is EMPTY AND Team is EMPTY AND assignee is EMPTY AND labels NOT IN (auto-triaged) ORDER BY created",
+      "autoTriagedLabel": "auto-triaged"
     },
     "timeout": 300,
     "maxIssues": 20
@@ -84,6 +87,8 @@ The workflow is configured in `.ambient/ambient.json`:
 ```
 
 **Simplified Execution**: The `/triage` command internally handles all phases sequentially, with parallel execution for type-specific analysis (CI/vuln/flaky) to save 60-80 seconds.
+
+**Idempotent Design**: Uses JQL search to exclude issues with `auto-triaged` label. After triage+comment, label is added to prevent re-processing.
 
 ## Version Mismatch Handling
 
